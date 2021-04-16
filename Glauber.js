@@ -8,6 +8,11 @@ const theSlider = document.getElementById("glauber-slider");
 theSlider.onchange = adjustTemp;
 theSlider.oninput = adjustTemp;
 const tempReadout = document.getElementById("glauber-temp");
+const radioGlauber = document.getElementById("radio-glauber");
+radioGlauber.onchange = chooseAcceptanceFunction;
+const radioMetro = document.getElementById("radio-metro");
+radioMetro.onchange = chooseAcceptanceFunction;
+var useGlauber = true;  // flag variable for choosing acceptance function
 
 const gridSize = 100;
 const gridEdge = gridSize - 1;
@@ -25,6 +30,7 @@ for (let i = 0; i < gridSize; i++) {
     lattice[i] = new Array(gridSize);
 }
 
+// used to initialize the array to random spins
 function coinFlip() {
   return Math.random() < 0.5;
 }
@@ -47,7 +53,7 @@ function init() {
 }
 
 function updateRandomCell() {
-  let x, y, north, south, east, west, deltaE;
+  let x, y, north, south, east, west, deltaE, boltz;
   x = Math.floor(Math.random() * gridSize);
   y = Math.floor(Math.random() * gridSize);
   north = lattice[x][(y > 0) ? y - 1 : gridEdge];   // implement toroidal lattice
@@ -55,10 +61,18 @@ function updateRandomCell() {
   east  = lattice[(x > 0) ? x - 1 : gridEdge][y];
   west  = lattice[(x < gridEdge) ? x + 1 : 0][y];
   deltaE = 2 * lattice[x][y] * (north + south + east + west);
-  if ((deltaE < 0) || Math.random() < Math.exp(-deltaE/temp)) {
-    lattice[x][y] *= -1;
-    markSpin(x, y);
+  boltz = Math.exp(-deltaE/temp);
+  if (useGlauber) {
+    if (Math.random() < (boltz / (1 + boltz))) {
+      lattice[x][y] *= -1;
+    }
   }
+  else {
+  if ((deltaE < 0) || (Math.random() < boltz)) {
+      lattice[x][y] *= -1;
+    }     
+  }
+  markSpin(x, y);
 }
 
 function runBatch() {
@@ -72,7 +86,7 @@ function doButton(e) {
   if (state !== 'running') {
     state = 'running';
     this.innerHTML = "Stop";
-    timer = setInterval(runBatch, 1);
+    timer = setInterval(runBatch, 10);
   }
   else {
     state = 'paused';
@@ -85,6 +99,15 @@ function doButton(e) {
 function adjustTemp(e) {
   temp = Number(this.value);
   tempReadout.textContent = temp.toFixed(2);
+}
+
+function chooseAcceptanceFunction(e) {
+  if (radioGlauber.checked === true) {
+    useGlauber = true;
+  }
+  else {
+    useGlauber = false;
+  }
 }
 
 init();
